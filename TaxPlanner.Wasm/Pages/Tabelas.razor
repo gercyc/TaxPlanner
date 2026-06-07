@@ -1,0 +1,282 @@
+@page "/tabelas"
+@using TaxPlanner.Wasm.Models
+@using TaxPlanner.Wasm.Services
+@inject CalculadoraIRService Calculadora
+
+<PageTitle>Tabelas da Receita Federal - TaxPlanner</PageTitle>
+
+<MudText Typo="Typo.h4" Class="font-weight-bold mb-2">Tabelas da Receita Federal</MudText>
+<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+    Consulte as tabelas oficiais de INSS e Imposto de Renda (IRRF e IR Anual) utilizadas nos cálculos.
+</MudText>
+
+<!-- Seleção do ano -->
+<MudCard Class="mb-6" Elevation="2">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Primary" Size="Size.Large" />
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Selecione o ano-calendário</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                As tabelas são carregadas conforme o ano escolhido.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudNumericField T="int"
+                                 Label="Ano"
+                                 @bind-Value="anoSelecionado"
+                                 Min="2020"
+                                 Max="2030"
+                                 Variant="Variant.Outlined"
+                                 Immediate="true"
+                                 @bind-Value:after="CarregarTabelas" />
+            </MudItem>
+        </MudGrid>
+
+        @if (tabelas?.TabelaEstimada == true)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
+                As tabelas oficiais para <strong>@anoSelecionado</strong> ainda não foram publicadas.
+                Os valores exibidos são uma estimativa baseada na tabela mais recente disponível.
+            </MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+@if (tabelas != null)
+{
+    <!-- Tabela INSS -->
+    <MudCard Class="mb-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                <MudIcon Icon="@Icons.Material.Filled.Work" Color="Color.Primary" Size="Size.Large" />
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">INSS — Contribuição Previdenciária</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Tabela progressiva para empregado CLT (vigente para @anoSelecionado).
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Items="tabelas.Inss" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Faixa</MudTh>
+                    <MudTh Style="text-align:right">Até (R$)</MudTh>
+                    <MudTh Style="text-align:right">Alíquota</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="faixa">
+                    <MudTd>
+                        @if (faixa == tabelas.Inss.Last())
+                        {
+                            <span>Última faixa</span>
+                        }
+                        else
+                        {
+                            <span>Faixa @(tabelas.Inss.IndexOf(faixa) + 1)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">@FormatarMoeda(faixa.Limite)</MudTd>
+                    <MudTd Style="text-align:right">@FormatarPercentual(faixa.Aliquota)</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                <strong>Teto de contribuição INSS:</strong> @FormatarMoeda(tabelas.TetoInss) (valor máximo descontado mensalmente).
+            </MudAlert>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Tabela IRRF Mensal -->
+    <MudCard Class="mb-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Secondary" Size="Size.Large" />
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">IRRF Mensal — Retido na Fonte</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Tabela mensal utilizada para cálculo do Imposto de Renda retido na fonte sobre salários.
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Items="tabelas.IrrfMensal" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Faixa</MudTh>
+                    <MudTh Style="text-align:right">Base de Cálculo (R$)</MudTh>
+                    <MudTh Style="text-align:right">Alíquota</MudTh>
+                    <MudTh Style="text-align:right">Dedução (R$)</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="faixa">
+                    <MudTd>
+                        @if (faixa == tabelas.IrrfMensal.Last())
+                        {
+                            <span>Acima de @FormatarMoeda(tabelas.IrrfMensal[tabelas.IrrfMensal.Count - 2].Limite)</span>
+                        }
+                        else if (faixa == tabelas.IrrfMensal.First())
+                        {
+                            <span>Até @FormatarMoeda(faixa.Limite)</span>
+                        }
+                        else
+                        {
+                            <span>De @FormatarMoeda(tabelas.IrrfMensal[tabelas.IrrfMensal.IndexOf(faixa) - 1].Limite) a @FormatarMoeda(faixa.Limite)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        @if (faixa == tabelas.IrrfMensal.Last())
+                        {
+                            <span>Acima de @FormatarMoeda(tabelas.IrrfMensal[tabelas.IrrfMensal.Count - 2].Limite)</span>
+                        }
+                        else
+                        {
+                            <span>Até @FormatarMoeda(faixa.Limite)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">@FormatarPercentual(faixa.Aliquota)</MudTd>
+                    <MudTd Style="text-align:right">@FormatarMoeda(faixa.Deducao)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Tabela IR Anual -->
+    <MudCard Class="mb-6" Elevation="2">
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Tertiary" Size="Size.Large" />
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">IR Anual — Declaração de Ajuste (IRPF)</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Tabela progressiva anual utilizada na declaração do Imposto de Renda Pessoa Física.
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Items="tabelas.IrAnual" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Faixa</MudTh>
+                    <MudTh Style="text-align:right">Base de Cálculo (R$)</MudTh>
+                    <MudTh Style="text-align:right">Alíquota</MudTh>
+                    <MudTh Style="text-align:right">Dedução (R$)</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="faixa">
+                    <MudTd>
+                        @if (faixa == tabelas.IrAnual.Last())
+                        {
+                            <span>Acima de @FormatarMoeda(tabelas.IrAnual[tabelas.IrAnual.Count - 2].Limite)</span>
+                        }
+                        else if (faixa == tabelas.IrAnual.First())
+                        {
+                            <span>Até @FormatarMoeda(faixa.Limite)</span>
+                        }
+                        else
+                        {
+                            <span>De @FormatarMoeda(tabelas.IrAnual[tabelas.IrAnual.IndexOf(faixa) - 1].Limite) a @FormatarMoeda(faixa.Limite)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        @if (faixa == tabelas.IrAnual.Last())
+                        {
+                            <span>Acima de @FormatarMoeda(tabelas.IrAnual[tabelas.IrAnual.Count - 2].Limite)</span>
+                        }
+                        else
+                        {
+                            <span>Até @FormatarMoeda(faixa.Limite)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">@FormatarPercentual(faixa.Aliquota)</MudTd>
+                    <MudTd Style="text-align:right">@FormatarMoeda(faixa.Deducao)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Redução (se aplicável) -->
+    @if (tabelas.PossuiReducao)
+    {
+        <MudCard Class="mb-6" Elevation="2">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Success" Size="Size.Large" />
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Redução do Imposto Devido</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Regras de redução progressiva conforme Lei nº 15.270/2025 (vigente a partir de 2026).
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Redução Mensal (IRRF)</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Base até <strong>@FormatarMoeda(tabelas.LimiteIsencaoMensal)</strong>: redução máxima de <strong>@FormatarMoeda(tabelas.ReducaoMaximaMensal)</strong>
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Base de @FormatarMoeda(tabelas.LimiteIsencaoMensal) a @FormatarMoeda(tabelas.LimiteFimReducaoMensal): redução progressiva
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Acima de <strong>@FormatarMoeda(tabelas.LimiteFimReducaoMensal)</strong>: sem redução
+                                </MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Redução Anual (IRPF)</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Base até <strong>@FormatarMoeda(tabelas.LimiteIsencaoAnual)</strong>: redução máxima de <strong>@FormatarMoeda(tabelas.ReducaoMaximaAnual)</strong>
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Base de @FormatarMoeda(tabelas.LimiteIsencaoAnual) a @FormatarMoeda(tabelas.LimiteFimReducaoAnual): redução progressiva
+                                </MudText>
+                            </MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.CheckCircle">
+                                <MudText>
+                                    Acima de <strong>@FormatarMoeda(tabelas.LimiteFimReducaoAnual)</strong>: sem redução
+                                </MudText>
+                            </MudListItem>
+                        </MudList>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+    }
+}
+
+@code {
+    private int anoSelecionado = DateTime.Now.Year - 1;
+    private TabelasImposto? tabelas;
+
+    protected override void OnInitialized()
+    {
+        CarregarTabelas();
+    }
+
+    private void CarregarTabelas()
+    {
+        tabelas = Calculadora.ObterTabelas(anoSelecionado);
+    }
+
+    private static string FormatarMoeda(decimal valor) =>
+        valor.ToString("N2", new System.Globalization.CultureInfo("pt-BR"));
+
+    private static string FormatarPercentual(decimal valor) =>
+        $"{(valor * 100m):N2} %";
+}

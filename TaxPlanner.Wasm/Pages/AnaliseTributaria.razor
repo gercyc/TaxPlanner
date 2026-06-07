@@ -1,0 +1,455 @@
+@page "/analise-tributaria"
+@using TaxPlanner.Wasm.Models
+@using TaxPlanner.Wasm.Services
+@inject CalculadoraIRService Calculadora
+
+<PageTitle>Análise Tributária - TaxPlanner</PageTitle>
+
+<MudText Typo="Typo.h4" Class="font-weight-bold mb-2">Análise Tributária</MudText>
+<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+    Preencha as informações abaixo para estimar seu Imposto de Renda. Siga os passos em ordem.
+</MudText>
+
+<!-- Passo 1: Configurações -->
+<MudCard Class="mb-6" Elevation="2">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold" Style="color:white;">1</MudText>
+            </MudAvatar>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Configurações da Simulação</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Escolha o ano-calendário e indique se deseja incluir o 13º salário.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudNumericField T="int"
+                                 Label="Ano-calendário"
+                                 @bind-Value="anoCalendario"
+                                 Min="2020"
+                                 Max="2030"
+                                 Variant="Variant.Outlined"
+                                 HelperText="Ano em que os rendimentos foram recebidos" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4" Class="d-flex align-center">
+                <MudSwitch T="bool"
+                           @bind-Value="incluirDecimo"
+                           Color="Color.Primary"
+                           Label="Incluir 13º salário no cálculo" />
+            </MudItem>
+        </MudGrid>
+
+        @if (Calculadora.TabelaEstimada(anoCalendario))
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
+                As tabelas de INSS e IR para <strong>@anoCalendario</strong> ainda não foram publicadas pela Receita Federal.
+                O cálculo utiliza os valores mais recentes disponíveis como estimativa.
+            </MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Passo 2: Períodos Salariais -->
+<MudCard Class="mb-6" Elevation="2">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold" Style="color:white;">2</MudText>
+            </MudAvatar>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Períodos Salariais</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Informe os meses e o salário bruto de cada período. Adicione mais de um período se você teve aumento ou promoção.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (periodos.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                <MudText Typo="Typo.body1">Nenhum período cadastrado ainda.</MudText>
+                <MudText Typo="Typo.body2">
+                    Clique em <strong>"Adicionar Período"</strong> para informar seu primeiro salário.
+                    Você pode adicionar quantos períodos precisar — por exemplo, um antes e outro depois de uma promoção.
+                </MudText>
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="periodos" Hover="true" Breakpoint="Breakpoint.Sm" Class="mb-4 periodos-table" Dense="true">
+                <HeaderContent>
+                    <MudTh>Mês de Início</MudTh>
+                    <MudTh>Mês de Fim</MudTh>
+                    <MudTh>Salário Bruto</MudTh>
+                    <MudTh Style="text-align:center">Meses</MudTh>
+                    <MudTh Style="text-align:center">Ações</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Mês de Início">
+                        <MudDatePicker Date="@(context.DataInicio.ToDateTime(TimeOnly.MinValue))"
+                                       DateChanged="@(d => AtualizarDataInicio(context, d))"
+                                       Variant="Variant.Text"
+                                       DateFormat="MM/yyyy"
+                                       OpenTo="OpenTo.Month"
+                                       FixDay="1"
+                                       Label="Início" />
+                    </MudTd>
+                    <MudTd DataLabel="Mês de Fim">
+                        <MudDatePicker Date="@(context.DataFim.ToDateTime(TimeOnly.MinValue))"
+                                       DateChanged="@(d => AtualizarDataFim(context, d))"
+                                       Variant="Variant.Text"
+                                       DateFormat="MM/yyyy"
+                                       OpenTo="OpenTo.Month"
+                                       FixDay="1"
+                                       Label="Fim" />
+                    </MudTd>
+                    <MudTd DataLabel="Salário Bruto">
+                        <MudNumericField T="decimal"
+                                         @bind-Value="context.SalarioBruto"
+                                         Variant="Variant.Text"
+                                         Format="N2"
+                                         Min="0"
+                                         Adornment="Adornment.Start"
+                                         AdornmentText="R$"
+                                         Label="Valor" />
+                    </MudTd>
+                    <MudTd DataLabel="Meses" Style="text-align:center">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.MesesNoPeriodo meses</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Ações" Style="text-align:center">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemoverPeriodo(context))"
+                                       Size="Size.Small"
+                                       title="Remover período" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
+        @if (!string.IsNullOrEmpty(erroPeriodos))
+        {
+            <MudAlert Severity="Severity.Warning" Class="mb-3" Icon="@Icons.Material.Filled.ErrorOutline">
+                @erroPeriodos
+            </MudAlert>
+        }
+
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   OnClick="AdicionarPeriodo"
+                   Class="mr-2">
+            Adicionar Período
+        </MudButton>
+
+        @if (periodos.Count > 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">
+                Total de períodos: <strong>@periodos.Count</strong>
+            </MudText>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Passo 3: Calcular -->
+<MudCard Class="mb-6" Elevation="2">
+    <MudCardHeader>
+        <CardHeaderAvatar>
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold" Style="color:white;">3</MudText>
+            </MudAvatar>
+        </CardHeaderAvatar>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Calcular</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Clique no botão abaixo para gerar o resultado da simulação.
+            </MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Calculate"
+                   OnClick="Calcular"
+                   Disabled="@(periodos.Count == 0)">
+            Calcular Imposto de Renda
+        </MudButton>
+
+        @if (periodos.Count == 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-3">
+                Adicione pelo menos um período salarial para calcular.
+            </MudText>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Resultado -->
+@if (resultado != null)
+{
+    <MudDivider Class="my-6" />
+
+    <MudText Typo="Typo.h5" Class="font-weight-bold mb-4">Resultado da Simulação</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="3"
+                     Style="@(resultado.ResultadoFinal <= 0 ? "border-left:6px solid var(--mud-palette-success);" : "border-left:6px solid var(--mud-palette-warning);")">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Resultado Final</MudText>
+                    <MudText Typo="Typo.h4" Class="font-weight-bold" Color="@(resultado.ResultadoFinal <= 0 ? Color.Success : Color.Warning)">
+                        @if (resultado.ResultadoFinal <= 0)
+                        {
+                            <span>IR a Restituir</span>
+                        }
+                        else
+                        {
+                            <span>IR a Pagar</span>
+                        }
+                    </MudText>
+                    <MudText Typo="Typo.h3" Class="font-weight-bold" Color="@(resultado.ResultadoFinal <= 0 ? Color.Success : Color.Warning)">
+                        @FormatarMoeda(Math.Abs(resultado.ResultadoFinal))
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        @if (resultado.ResultadoFinal <= 0)
+                        {
+                            <span>A Receita Federal deverá restituir este valor após a entrega da declaração.</span>
+                        }
+                        else
+                        {
+                            <span>Este valor deverá ser pago à Receita Federal na declaração anual.</span>
+                        }
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">Resumo Anual</MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.AttachMoney">
+                            <MudText><strong>Rendimento Bruto Anual:</strong> @FormatarMoeda(resultado.RendimentoBrutoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.RemoveCircleOutline">
+                            <MudText><strong>INSS Deduzido:</strong> − @FormatarMoeda(resultado.InssAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.TrendingUp">
+                            <MudText><strong>Base de Cálculo IR:</strong> @FormatarMoeda(resultado.BaseDeCaculoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.AccountBalance">
+                            <MudText><strong>IR Devido (tabela anual):</strong> @FormatarMoeda(resultado.IrDevidoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.RemoveCircleOutline">
+                            <MudText><strong>IRRF Retido na Fonte:</strong> − @FormatarMoeda(resultado.IrrfRetidoAnual)</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Detalhamento -->
+    <MudExpansionPanels Class="mb-4" MultiExpansion="false">
+        <MudExpansionPanel Text="Detalhamento do Cálculo Anual" Expanded="true">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudList T="string" Dense="true">
+                        <MudListItem>
+                            <MudText><strong>Rendimento Bruto Anual:</strong> @FormatarMoeda(resultado.RendimentoBrutoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem>
+                            <MudText><strong>INSS Deduzido:</strong> − @FormatarMoeda(resultado.InssAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem>
+                            <MudText><strong>Base de Cálculo IR:</strong> @FormatarMoeda(resultado.BaseDeCaculoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem>
+                            <MudText><strong>IR Devido (tabela anual):</strong> @FormatarMoeda(resultado.IrDevidoAnual)</MudText>
+                        </MudListItem>
+                        <MudListItem>
+                            <MudText><strong>IRRF Retido na Fonte:</strong> − @FormatarMoeda(resultado.IrrfRetidoAnual)</MudText>
+                        </MudListItem>
+                        <MudDivider Class="my-1" />
+                        <MudListItem>
+                            <MudText Color="@(resultado.ResultadoFinal <= 0 ? Color.Success : Color.Warning)">
+                                <strong>
+                                    @(resultado.ResultadoFinal <= 0 ? "A Restituir:" : "A Pagar:")
+                                    @FormatarMoeda(Math.Abs(resultado.ResultadoFinal))
+                                </strong>
+                            </MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudItem>
+
+                @if (resultado.IncluiDecimo)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">13º Salário (tributação exclusiva)</MudText>
+                        <MudList T="string" Dense="true">
+                            <MudListItem>
+                                <MudText><strong>Salário 13º:</strong> @FormatarMoeda(resultado.SalarioDecimoTerceiro)</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText><strong>INSS s/ 13º:</strong> − @FormatarMoeda(resultado.InssDecimoTerceiro)</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText><strong>Base de Cálculo:</strong> @FormatarMoeda(resultado.BaseCaculoDecimoTerceiro)</MudText>
+                            </MudListItem>
+                            <MudListItem>
+                                <MudText><strong>IRRF s/ 13º (exclusivo):</strong> @FormatarMoeda(resultado.IrrfRetidoDecimoTerceiro)</MudText>
+                            </MudListItem>
+                        </MudList>
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                            O 13º tem tributação exclusiva na fonte — não entra na base da declaração anual.
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Detalhamento Mensal">
+            <MudTable Items="resultado.DetalhesMensais" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Mês</MudTh>
+                    <MudTh Style="text-align:right">Salário Bruto</MudTh>
+                    <MudTh Style="text-align:right">INSS</MudTh>
+                    <MudTh Style="text-align:right">Base de Cálculo</MudTh>
+                    <MudTh Style="text-align:right">IRRF Retido</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Mês">@NomeMes(context.Mes)/@context.Ano</MudTd>
+                    <MudTd DataLabel="Salário Bruto" Style="text-align:right">@FormatarMoeda(context.SalarioBruto)</MudTd>
+                    <MudTd DataLabel="INSS" Style="text-align:right">@FormatarMoeda(context.Inss)</MudTd>
+                    <MudTd DataLabel="Base de Cálculo" Style="text-align:right">@FormatarMoeda(context.BaseCalculo)</MudTd>
+                    <MudTd DataLabel="IRRF Retido" Style="text-align:right">@FormatarMoeda(context.IrrfRetido)</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd><strong>Total</strong></MudTd>
+                    <MudTd Style="text-align:right"><strong>@FormatarMoeda(resultado.RendimentoBrutoAnual)</strong></MudTd>
+                    <MudTd Style="text-align:right"><strong>@FormatarMoeda(resultado.InssAnual)</strong></MudTd>
+                    <MudTd Style="text-align:right"><strong>@FormatarMoeda(resultado.BaseDeCaculoAnual)</strong></MudTd>
+                    <MudTd Style="text-align:right"><strong>@FormatarMoeda(resultado.IrrfRetidoAnual)</strong></MudTd>
+                </FooterContent>
+            </MudTable>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Filled.Info">
+        <strong>Atenção:</strong> Este cálculo é uma estimativa baseado nas tabelas da Receita Federal para o ano-calendário @anoCalendario.
+        Não são consideradas deduções com saúde, educação, dependentes ou pensão alimentícia.
+        Consulte um contador para uma análise completa.
+    </MudAlert>
+}
+
+@code {
+    private int anoCalendario = DateTime.Now.Year - 1;
+    private bool incluirDecimo = true;
+    private List<PeriodoSalarial> periodos = [];
+    private ResultadoIR? resultado;
+    private string erroPeriodos = string.Empty;
+
+    private void AdicionarPeriodo()
+    {
+        var inicio = periodos.Count == 0
+            ? new DateOnly(anoCalendario, 1, 1)
+            : periodos.Last().DataFim.AddMonths(1);
+
+        var fim = new DateOnly(anoCalendario, 12, 31);
+        if (inicio > fim) inicio = fim;
+
+        periodos.Add(new PeriodoSalarial
+        {
+            DataInicio = inicio,
+            DataFim = fim,
+            SalarioBruto = 0
+        });
+
+        resultado = null;
+    }
+
+    private void RemoverPeriodo(PeriodoSalarial periodo)
+    {
+        periodos.Remove(periodo);
+        resultado = null;
+    }
+
+    private void AtualizarDataInicio(PeriodoSalarial periodo, DateTime? data)
+    {
+        if (data.HasValue)
+            periodo.DataInicio = DateOnly.FromDateTime(data.Value);
+        resultado = null;
+    }
+
+    private void AtualizarDataFim(PeriodoSalarial periodo, DateTime? data)
+    {
+        if (data.HasValue)
+            periodo.DataFim = DateOnly.FromDateTime(data.Value);
+        resultado = null;
+    }
+
+    private void Calcular()
+    {
+        erroPeriodos = string.Empty;
+
+        if (!ValidarPeriodos()) return;
+
+        resultado = Calculadora.Calcular(periodos, incluirDecimo, anoCalendario);
+    }
+
+    private bool ValidarPeriodos()
+    {
+        foreach (var p in periodos)
+        {
+            if (p.DataFim < p.DataInicio)
+            {
+                erroPeriodos = "Um ou mais períodos têm data de fim anterior à data de início.";
+                return false;
+            }
+
+            if (p.SalarioBruto <= 0)
+            {
+                erroPeriodos = "Informe o salário bruto para todos os períodos.";
+                return false;
+            }
+        }
+
+        // Verificar sobreposição
+        var ordenados = periodos.OrderBy(p => p.DataInicio).ToList();
+        for (int i = 1; i < ordenados.Count; i++)
+        {
+            if (ordenados[i].DataInicio <= ordenados[i - 1].DataFim)
+            {
+                erroPeriodos = "Os períodos não podem se sobrepor. Verifique as datas.";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string FormatarMoeda(decimal valor) =>
+        valor.ToString("N2", new System.Globalization.CultureInfo("pt-BR"));
+
+    private static string NomeMes(int mes) => mes switch
+    {
+        1 => "Jan", 2 => "Fev", 3 => "Mar", 4 => "Abr",
+        5 => "Mai", 6 => "Jun", 7 => "Jul", 8 => "Ago",
+        9 => "Set", 10 => "Out", 11 => "Nov", 12 => "Dez",
+        _ => mes.ToString()
+    };
+}
+
+<style>
+    .periodos-table .mud-table-container {
+        overflow: visible !important;
+    }
+</style>

@@ -1,0 +1,163 @@
+@page "/"
+
+<PageTitle>TaxPlanner — Simule seu Imposto de Renda</PageTitle>
+
+<MudGrid Justify="Justify.Center" Class="mb-12">
+    <MudItem xs="12" md="10" lg="8" Class="text-center">
+        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" Class="mb-4" Style="width:64px;height:64px;" />
+        <MudText Typo="Typo.h3" Class="font-weight-bold mb-3">
+            TaxPlanner
+        </MudText>
+        <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mb-4">
+            Simule seu Imposto de Renda de forma simples, rápida e segura
+        </MudText>
+        <MudText Typo="Typo.body1" Class="mb-6">
+            Informe seus salários ao longo do ano — incluindo promoções e reajustes — e descubra se você terá restituição ou imposto a pagar.
+            Tudo baseado nas tabelas oficiais da Receita Federal.
+        </MudText>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Calculate"
+                   Href="/analise-tributaria">
+            Começar Simulação
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+<MudDivider Class="my-8" />
+
+<MudText Typo="Typo.h5" Align="Align.Center" Class="font-weight-bold mb-6">
+    Como funciona?
+</MudText>
+
+<MudGrid Justify="Justify.Center" Class="mb-12">
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="0" Class="text-center pa-4 h-100" Style="border:1px solid var(--mud-palette-divider);">
+            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mx-auto mb-3">
+                <MudText Typo="Typo.h5" Class="font-weight-bold">1</MudText>
+            </MudAvatar>
+            <MudText Typo="Typo.h6" Class="mb-2">Escolha o ano</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Selecione o ano-calendário da declaração. As tabelas do IR e INSS são carregadas automaticamente.
+            </MudText>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="0" Class="text-center pa-4 h-100" Style="border:1px solid var(--mud-palette-divider);">
+            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mx-auto mb-3">
+                <MudText Typo="Typo.h5" Class="font-weight-bold">2</MudText>
+            </MudAvatar>
+            <MudText Typo="Typo.h6" Class="mb-2">Informe seus salários</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Adicione um ou mais períodos com o salário bruto de cada fase. Promoções e reajustes são suportados.
+            </MudText>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="0" Class="text-center pa-4 h-100" Style="border:1px solid var(--mud-palette-divider);">
+            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mx-auto mb-3">
+                <MudText Typo="Typo.h5" Class="font-weight-bold">3</MudText>
+            </MudAvatar>
+            <MudText Typo="Typo.h6" Class="mb-2">Inclua o 13º</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Ative a opção de 13º salário para incluir a tributação exclusiva na fonte no cálculo.
+            </MudText>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="0" Class="text-center pa-4 h-100" Style="border:1px solid var(--mud-palette-divider);">
+            <MudAvatar Color="Color.Primary" Size="Size.Large" Class="mx-auto mb-3">
+                <MudText Typo="Typo.h5" Class="font-weight-bold">4</MudText>
+            </MudAvatar>
+            <MudText Typo="Typo.h6" Class="mb-2">Veja o resultado</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Descubra se você tem imposto a restituir ou a pagar, com detalhamento mensal e anual completo.
+            </MudText>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudDivider Class="my-8" />
+
+<MudText Typo="Typo.h5" Align="Align.Center" Class="font-weight-bold mb-6">
+    O que você encontra aqui
+</MudText>
+
+<MudGrid Justify="Justify.Center" Class="mb-8">
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudIcon Icon="@Icons.Material.Filled.Calculate" Color="Color.Primary" Size="Size.Large" />
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Análise Tributária</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Estimativa completa de IR</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Calcule o Imposto de Renda considerando salários variáveis ao longo do ano, INSS, IRRF mensal e a tabela progressiva anual.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/analise-tributaria" FullWidth="true">
+                    Acessar
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudIcon Icon="@Icons.Material.Filled.TableChart" Color="Color.Secondary" Size="Size.Large" />
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Tabelas Oficiais</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Atualizadas automaticamente</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Utilizamos as tabelas de INSS e IR da Receita Federal. Anos futuros usam a última tabela disponível como estimativa.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Success" Size="Size.Large" />
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">100% Privado</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum dado armazenado</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Todos os cálculos acontecem no seu navegador. Não salvamos seus dados salariais, nem exigimos cadastro.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info"
+          Variant="Variant.Outlined"
+          Icon="@Icons.Material.Filled.Info"
+          Class="mt-8">
+    <MudText Typo="Typo.body2">
+        <strong>Importante:</strong> os valores calculados são estimativas baseadas nas tabelas oficiais.
+        Não são consideradas deduções como saúde, educação, dependentes ou pensão alimentícia.
+        Consulte um contador para uma análise tributária completa.
+    </MudText>
+</MudAlert>
