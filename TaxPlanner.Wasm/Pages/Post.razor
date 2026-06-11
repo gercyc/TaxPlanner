@@ -1,0 +1,78 @@
+@page "/post/{Slug}"
+@inject BlogService BlogService
+@inject IJSRuntime JS
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_post is null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        Postagem não encontrada.
+    </MudAlert>
+    <MudButton Href="/blog" Variant="Variant.Filled" Color="Color.Primary">
+        Voltar ao Blog
+    </MudButton>
+}
+else
+{
+    <MudText Typo="Typo.h3" Class="mb-2" Color="Color.Primary">
+        @_post.Title
+    </MudText>
+
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4">
+        @_post.PublishedAt?.ToString("dd 'de' MMMM 'de' yyyy")
+    </MudText>
+
+    @if (!string.IsNullOrWhiteSpace(_post.Tags))
+    {
+        <div class="mb-4">
+            @foreach (var tag in _post.Tags!.Split(','))
+            {
+                var trimmed = tag.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmed))
+                {
+                    <span class="mud-chip mud-chip-size-small mud-chip-outlined mr-1 mb-1">@trimmed</span>
+                }
+            }
+        </div>
+    }
+
+    <MudDivider Class="mb-4" />
+
+    <div class="blog-content">
+        @((MarkupString)_post.ContentHtml)
+    </div>
+
+    <MudDivider Class="my-6" />
+
+    <MudButton Href="/blog" Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.ArrowBack">
+        Voltar ao Blog
+    </MudButton>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    private BlogService.PostDetail? _post;
+    private bool _loading = true;
+    private bool _highlighted;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _post = await BlogService.GetPostAsync(Slug);
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loading && _post is not null && !_highlighted)
+        {
+            _highlighted = true;
+            await JS.InvokeVoidAsync("Prism.highlightAll");
+        }
+    }
+}

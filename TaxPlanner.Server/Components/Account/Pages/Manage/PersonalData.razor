@@ -1,0 +1,48 @@
+@page "/Account/Manage/PersonalData"
+
+@using Microsoft.AspNetCore.Identity
+@using TaxPlanner.Server.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Personal Data</PageTitle>
+
+<StatusMessage />
+<MudText Typo="Typo.h5" GutterBottom="true">Personal Data</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudText Class="mb-3">Your account contains personal data that you have given us. This page allows you to download or delete that data.</MudText>
+        <MudText Class="mb-3" Typo="Typo.subtitle1">Deleting this data will permanently remove your account, and this cannot be recovered.</MudText>
+        <div class="d-flex flex-wrap gap-2">
+            <form action="Account/Manage/DownloadPersonalData" method="post">
+                <AntiforgeryToken />
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary">
+                    Download
+                </MudButton>
+            </form>
+            <MudButton Href="Account/Manage/DeletePersonalData"
+                       Variant="Variant.Filled"
+                       Color="Color.Error">
+                Delete
+            </MudButton>
+        </div>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+        }
+    }
+}

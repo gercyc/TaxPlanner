@@ -1,0 +1,111 @@
+@page "/Account/LoginWith2fa"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using TaxPlanner.Server.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<LoginWith2fa> Logger
+
+<PageTitle>Two-factor authentication</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Two-factor authentication</MudText>
+<MudDivider Class="my-3" />
+
+<StatusMessage Message="@message" />
+
+<MudText Class="mb-4">Your login is protected with an authenticator app. Enter your authenticator code below.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <EditForm Model="Input" FormName="login-with-2fa" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+            <input type="hidden" name="RememberMe" value="@RememberMe" />
+
+            <MudStaticTextField @bind-Value="Input.TwoFactorCode"
+                          Label="Authenticator code"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          For="() => Input.TwoFactorCode"
+                          Class="mb-3" />
+
+            <MudStaticCheckBox @bind-Value="Input.RememberMachine"
+                         Label="Remember this machine"
+                         Class="mb-4" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large">
+                Log in
+            </MudButton>
+        </EditForm>
+    </MudItem>
+</MudGrid>
+
+<MudText Class="mt-4">
+    Don't have access to your authenticator device? You can
+    <a href="@($"Account/LoginWithRecoveryCode?ReturnUrl={ReturnUrl}")">log in with a recovery code</a>.
+</MudText>
+
+@code {
+    private string? message;
+    private ApplicationUser user = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery]
+    private bool RememberMe { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        // Ensure the user has gone through the username & password screen first
+        user = await SignInManager.GetTwoFactorAuthenticationUserAsync() ??
+            throw new InvalidOperationException("Unable to load two-factor authentication user.");
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        var authenticatorCode = Input.TwoFactorCode!.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var result = await SignInManager.TwoFactorAuthenticatorSignInAsync(authenticatorCode, RememberMe, Input.RememberMachine);
+        var userId = await UserManager.GetUserIdAsync(user);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", userId);
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User with ID '{UserId}' account locked out.", userId);
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            Logger.LogWarning("Invalid authenticator code entered for user with ID '{UserId}'.", userId);
+            message = "Error: Invalid authenticator code.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Text)]
+        [Display(Name = "Authenticator code")]
+        public string? TwoFactorCode { get; set; }
+
+        [Display(Name = "Remember this machine")]
+        public bool RememberMachine { get; set; }
+    }
+}

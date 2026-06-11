@@ -1,0 +1,74 @@
+@page "/"
+
+<MudText Typo="Typo.h4" Class="mb-4" Color="Color.Primary">Painel de Controle — Blog</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6" lg="4">
+        <MudCard Elevation="2">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Article" Class="mr-2" Color="Color.Primary" />
+                    Postagens
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Gerencie os artigos do blog. Crie, edite e publique postagens em formato Markdown.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/admin/posts" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.List">
+                    Ver Postagens
+                </MudButton>
+                <MudButton Href="/admin/posts/novo" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    Nova
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="6" lg="4">
+        <MudCard Elevation="2">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="mr-2" Color="Color.Secondary" />
+                    Conta
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Gerencie sua conta de administrador e configurações de segurança.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <AuthorizeView>
+                    <Authorized>
+                        <MudButton Href="/Account/Manage" Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Settings">
+                            Gerenciar Conta
+                        </MudButton>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudButton Href="/Account/Login" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">
+                            Entrar
+                        </MudButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="6" lg="4">
+        <MudCard Elevation="2">
+            <MudCardContent>
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Api" Class="mr-2" Color="Color.Tertiary" />
+                    API Pública
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    A API de postagens está disponível em <code>/api/posts</code> para consumo pelo frontend.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/api/posts" Variant="Variant.Outlined" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.OpenInNew" Target="_blank">
+                    GET /api/posts
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

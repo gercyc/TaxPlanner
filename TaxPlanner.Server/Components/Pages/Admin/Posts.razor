@@ -1,0 +1,122 @@
+@page "/admin/posts"
+@attribute [Authorize]
+@inject BlogService BlogService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h4" Class="mb-4" Color="Color.Primary">Gerenciar Postagens</MudText>
+
+<MudButton Href="/admin/posts/novo" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="mb-4">
+    Nova Postagem
+</MudButton>
+
+@if (_posts is null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_posts.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Nenhuma postagem encontrada. Crie sua primeira postagem!
+    </MudAlert>
+}
+else
+{
+    <MudTable Items="_posts" Hover="true" Striped="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>Status</MudTh>
+            <MudTh>Título</MudTh>
+            <MudTh>Slug</MudTh>
+            <MudTh>Criado em</MudTh>
+            <MudTh>Publicado</MudTh>
+            <MudTh Class="text-right">Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @if (context.IsPublished)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Success">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" Class="mr-1" />Publicado
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Secondary" Class="mr-1" />Rascunho
+                    </MudText>
+                }
+            </MudTd>
+            <MudTd>@context.Title</MudTd>
+            <MudTd><code>@context.Slug</code></MudTd>
+            <MudTd>@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                @if (context.PublishedAt.HasValue)
+                {
+                    @context.PublishedAt.Value.ToString("dd/MM/yyyy")
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                }
+            </MudTd>
+            <MudTd Class="text-right">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               Href="@($"/admin/posts/{context.Id}/editar")" />
+                @if (context.IsPublished)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small"
+                                   Color="Color.Warning" OnClick="@(() => UnpublishPost(context.Id))" />
+                }
+                else
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Publish" Size="Size.Small"
+                                   Color="Color.Success" OnClick="@(() => PublishPost(context.Id))" />
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                               Color="Color.Error" OnClick="@(() => DeletePost(context.Id, context.Title))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<TaxPlanner.Server.Models.Post>? _posts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _posts = await BlogService.GetAllPostsAsync();
+    }
+
+    private async Task PublishPost(int id)
+    {
+        await BlogService.PublishAsync(id);
+        Snackbar.Add("Postagem publicada!", Severity.Success);
+        _posts = await BlogService.GetAllPostsAsync();
+    }
+
+    private async Task UnpublishPost(int id)
+    {
+        await BlogService.UnpublishAsync(id);
+        Snackbar.Add("Postagem despublicada.", Severity.Info);
+        _posts = await BlogService.GetAllPostsAsync();
+    }
+
+    private async Task DeletePost(int id, string title)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Content", $"Tem certeza que deseja excluir a postagem \"{title}\"? Esta ação não pode ser desfeita." }
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDeleteDialog>("Confirmar exclusão", parameters);
+        var result = await dialog.Result;
+
+        if (!result?.Canceled ?? false)
+        {
+            await BlogService.DeleteAsync(id);
+            Snackbar.Add($"Postagem excluída.", Severity.Success);
+            _posts = await BlogService.GetAllPostsAsync();
+        }
+    }
+}

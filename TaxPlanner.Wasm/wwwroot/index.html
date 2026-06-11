@@ -9,6 +9,9 @@
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!-- Prism.js syntax highlighting -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
     <!-- If you add any scoped CSS files, uncomment the following to load them
     <link href="TaxPlanner.Wasm.styles.css" rel="stylesheet" /> -->
     <link href="manifest.webmanifest" rel="manifest" />
@@ -34,6 +37,11 @@
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <!-- Prism.js core + autoloader for syntax highlighting -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
 </body>
 
 </html>

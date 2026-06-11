@@ -1,0 +1,331 @@
+@page "/admin/posts/{Id:int}/editar"
+@attribute [Authorize]
+@inject BlogService BlogService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_model is null)
+{
+    <MudAlert Severity="Severity.Error">Postagem não encontrada.</MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.h4" Class="mb-4" Color="Color.Primary">Editar Postagem</MudText>
+
+    <EditForm Model="_model" OnValidSubmit="Save">
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_model.Title" Label="Título" Required="true" RequiredError="Título é obrigatório"
+                              Variant="Variant.Outlined" Class="mb-3" FullWidth="true"
+                              OnBlur="GenerateSlugIfEmpty" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.Slug" Label="Slug" Required="true" RequiredError="Slug é obrigatório"
+                              Variant="Variant.Outlined" Class="mb-3" HelperText="URL amigável">
+                </MudTextField>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Summary" Label="Resumo" Variant="Variant.Outlined" Class="mb-3" FullWidth="true"
+                              Lines="2" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Tags" Label="Tags" Variant="Variant.Outlined" Class="mb-3" FullWidth="true"
+                              HelperText="Separadas por vírgula" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Markdown</MudText>
+                <MudTextField @bind-Value="_contentMarkdown" Variant="Variant.Outlined"
+                              Lines="20" FullWidth="true" Class="mb-3" Immediate="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Preview</MudText>
+                <MudPaper Elevation="1" Class="pa-4" MinHeight="480" MaxHeight="600" Style="overflow-y: auto;">
+                    @if (string.IsNullOrWhiteSpace(_previewHtml))
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            O preview aparecerá aqui conforme você digita...
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body1">
+                            @((MarkupString)_previewHtml)
+                        </MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            @* ── Image Upload Section ────────────────────────────────────── *@
+            <MudItem xs="12">
+                <MudDivider Class="mb-4" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Image" Class="mr-1" />Imagens
+                </MudText>
+
+                <div class="mb-4">
+                    <MudButton HtmlTag="label" for="upload-image-input-editar"
+                               Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Upload"
+                               Disabled="_uploading">
+                        @(_uploading ? "Enviando..." : "Fazer Upload de Imagem")
+                    </MudButton>
+                    <InputFile id="upload-image-input-editar"
+                               OnChange="HandleImageUpload"
+                               accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                               hidden
+                               disabled="@_uploading" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2 d-inline-block">
+                        JPG, PNG, GIF, WebP, SVG até 5 MB
+                    </MudText>
+                </div>
+
+                @if (_images is not null && _images.Count > 0)
+                {
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var img in _images)
+                        {
+                            <MudPaper Elevation="1" Class="pa-2" Style="width: 150px;">
+                                <img src="@img.Url" alt="@img.FileName"
+                                     style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                                     @onclick="() => InsertImageMarkdown(img.Url, img.FileName)"
+                                     title="Clique para inserir no markdown" />
+                                <div class="d-flex justify-space-between align-center mt-1">
+                                    <MudText Typo="Typo.caption" Class="text-truncate" Style="max-width: 90px;" title="@img.FileName">
+                                        @img.FileName
+                                    </MudText>
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => CopyUrlToClipboard(img.Url))"
+                                                   title="Copiar URL" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => DeleteImage(img.FileName))"
+                                                   title="Eliminar imagem" />
+                                </div>
+                            </MudPaper>
+                        }
+                    </div>
+                }
+                else if (_images is not null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Nenhuma imagem enviada ainda.
+                    </MudText>
+                }
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudDivider Class="mb-4" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save">
+                    Salvar Alterações
+                </MudButton>
+                @if (!_isPublished)
+                {
+                    <MudButton OnClick="SaveAndPublish" Variant="Variant.Filled" Color="Color.Success"
+                               StartIcon="@Icons.Material.Filled.Publish" Class="ml-2">
+                        Salvar e Publicar
+                    </MudButton>
+                }
+                <MudButton Href="/admin/posts" Variant="Variant.Text" Color="Color.Secondary" Class="ml-2">
+                    Cancelar
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PostEditModel? _model;
+    private string _previewHtml = string.Empty;
+    private bool _loading = true;
+    private bool _isPublished;
+    private bool _slugAutoGenerated = true;
+    private List<BlogService.ImageInfo>? _images;
+    private bool _uploading;
+
+    private string _contentMarkdown
+    {
+        get => _model?.ContentMarkdown ?? string.Empty;
+        set
+        {
+            if (_model is not null)
+            {
+                _model.ContentMarkdown = value;
+                _slugAutoGenerated = false;
+                _previewHtml = RenderMarkdown(value);
+            }
+        }
+    }
+
+    private class PostEditModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Slug { get; set; } = string.Empty;
+        public string? Summary { get; set; }
+        public string ContentMarkdown { get; set; } = string.Empty;
+        public string? Tags { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var post = await BlogService.GetByIdAsync(Id);
+        if (post is not null)
+        {
+            _model = new PostEditModel
+            {
+                Title = post.Title,
+                Slug = post.Slug,
+                Summary = post.Summary,
+                ContentMarkdown = post.ContentMarkdown,
+                Tags = post.Tags
+            };
+            _isPublished = post.IsPublished;
+            _previewHtml = RenderMarkdown(post.ContentMarkdown);
+        }
+        _loading = false;
+        LoadImages();
+    }
+
+    private void LoadImages()
+    {
+        _images = BlogService.GetImages();
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _uploading = true;
+        try
+        {
+            var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+            var allowedExtensions = new HashSet<string> { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg" };
+
+            if (!allowedExtensions.Contains(ext))
+            {
+                Snackbar.Add($"Formato não permitido: {ext}. Use JPG, PNG, GIF, WebP ou SVG.", Severity.Error);
+                return;
+            }
+
+            const long maxSize = 5 * 1024 * 1024;
+            if (file.Size > maxSize)
+            {
+                Snackbar.Add($"Ficheiro muito grande ({file.Size / 1024} KB). Máximo: 5 MB.", Severity.Error);
+                return;
+            }
+
+            await using var stream = file.OpenReadStream(maxSize);
+            var url = await BlogService.UploadImageAsync(stream, file.Name, file.ContentType);
+
+            Snackbar.Add($"Imagem enviada: {file.Name}", Severity.Success);
+
+            // Insert markdown at the end of the content
+            if (_model is not null)
+            {
+                _model.ContentMarkdown += $"\n![{file.Name}]({url})\n";
+                _previewHtml = RenderMarkdown(_model.ContentMarkdown);
+            }
+
+            LoadImages();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao enviar imagem: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private void InsertImageMarkdown(string url, string alt)
+    {
+        if (_model is null) return;
+        _model.ContentMarkdown += $"\n![{alt}]({url})\n";
+        _previewHtml = RenderMarkdown(_model.ContentMarkdown);
+        Snackbar.Add("Markdown inserido no editor.", Severity.Info);
+    }
+
+    private async Task CopyUrlToClipboard(string url)
+    {
+        var fullUrl = $"{Navigation.BaseUri.TrimEnd('/')}{url}";
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", fullUrl);
+        Snackbar.Add("URL copiada!", Severity.Success);
+    }
+
+    private void DeleteImage(string fileName)
+    {
+        var deleted = BlogService.DeleteImage(fileName);
+        if (deleted)
+        {
+            Snackbar.Add($"Imagem eliminada: {fileName}", Severity.Info);
+            LoadImages();
+        }
+        else
+        {
+            Snackbar.Add($"Não foi possível eliminar: {fileName}", Severity.Error);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_model is null) return;
+        await BlogService.UpdateAsync(Id, _model.Title, _model.Summary, _model.ContentMarkdown, _model.Tags, _model.Slug, _isPublished);
+        Snackbar.Add("Alterações salvas!", Severity.Success);
+        Navigation.NavigateTo("/admin/posts");
+    }
+
+    private async Task SaveAndPublish()
+    {
+        if (_model is null) return;
+        await BlogService.UpdateAsync(Id, _model.Title, _model.Summary, _model.ContentMarkdown, _model.Tags, _model.Slug, true);
+        Snackbar.Add("Postagem publicada!", Severity.Success);
+        Navigation.NavigateTo("/admin/posts");
+    }
+
+    private void GenerateSlugIfEmpty()
+    {
+        if (_slugAutoGenerated || string.IsNullOrWhiteSpace(_model?.Slug))
+        {
+            if (_model is not null)
+            {
+                _model.Slug = GenerateSlug(_model.Title);
+                _slugAutoGenerated = true;
+            }
+        }
+    }
+
+    private static string GenerateSlug(string title)
+    {
+        var slug = title
+            .ToLowerInvariant()
+            .Replace(" ", "-")
+            .Select(c => (char.IsLetterOrDigit(c) || c == '-') ? c.ToString() : "-")
+            .Aggregate("", (a, b) => a + b);
+        while (slug.Contains("--"))
+            slug = slug.Replace("--", "-");
+        return slug.Trim('-');
+    }
+
+    private static string RenderMarkdown(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+        return Markdown.ToHtml(markdown, new MarkdownPipelineBuilder().UseAdvancedExtensions().Build());
+    }
+}

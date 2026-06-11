@@ -1,0 +1,26 @@
+@using Microsoft.AspNetCore.Identity
+@using TaxPlanner.Server.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+
+<MudNavMenu>
+    <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All">Profile</MudNavLink>
+    <MudNavLink Href="Account/Manage/Email">Email</MudNavLink>
+    <MudNavLink Href="Account/Manage/ChangePassword">Password</MudNavLink>
+    @if (hasExternalLogins)
+    {
+        <MudNavLink Href="Account/Manage/ExternalLogins">External logins</MudNavLink>
+    }
+    <MudNavLink Href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</MudNavLink>
+    <MudNavLink Href="Account/Manage/Passkeys">Passkeys</MudNavLink>
+    <MudNavLink Href="Account/Manage/PersonalData">Personal data</MudNavLink>
+</MudNavMenu>
+
+@code {
+    private bool hasExternalLogins;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+    }
+}

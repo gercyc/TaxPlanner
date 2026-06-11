@@ -1,0 +1,16 @@
+@inherits LayoutComponentBase
+@layout TaxPlanner.Server.Components.Layout.MainLayout
+
+<MudText Typo="Typo.h4" GutterBottom="true">Manage your account</MudText>
+
+<MudText Typo="Typo.h5" Class="mb-2">Change your account settings</MudText>
+<MudDivider Class="my-3" />
+
+<MudGrid>
+    <MudItem xs="12" md="3">
+        <ManageNavMenu />
+    </MudItem>
+    <MudItem xs="12" md="9">
+        @Body
+    </MudItem>
+</MudGrid>

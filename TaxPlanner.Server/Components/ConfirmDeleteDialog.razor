@@ -1,0 +1,21 @@
+<MudDialog>
+    <DialogContent>
+        <MudText>@Content</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancelar</MudButton>
+        <MudButton OnClick="Confirm" Color="Color.Error">Sim, excluir</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,111 @@
+@page "/blog"
+@inject BlogService BlogService
+
+<MudText Typo="Typo.h3" Class="mb-6" Color="Color.Primary">
+    <MudIcon Icon="@Icons.Material.Filled.Article" Class="mr-2" />
+    Blog
+</MudText>
+
+@if (_posts is null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_posts.Posts.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Nenhuma postagem publicada ainda. Volte em breve!
+    </MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var post in _posts.Posts)
+        {
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Elevation="2" Class="mb-4" Style="height: 100%;">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            <MudNavLink Href="@($"/post/{post.Slug}")" Class="pa-0">
+                                @post.Title
+                            </MudNavLink>
+                        </MudText>
+
+                        @if (!string.IsNullOrWhiteSpace(post.Summary))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                                @post.Summary
+                            </MudText>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(post.Tags))
+                        {
+                            <div class="mb-2">
+                                @foreach (var tag in post.Tags!.Split(','))
+                                {
+                                    var trimmed = tag.Trim();
+                                    if (!string.IsNullOrWhiteSpace(trimmed))
+                                    {
+                                        <span class="mud-chip mud-chip-size-small mud-chip-outlined mr-1 mb-1">@trimmed</span>
+                                    }
+                                }
+                            </div>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @(post.PublishedAt?.ToString("dd/MM/yyyy"))
+                        </MudText>
+                        <MudSpacer />
+                        <MudButton Href="@($"/post/{post.Slug}")" Variant="Variant.Text" Color="Color.Primary"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                            Ler
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_posts.TotalCount > _pageSize)
+    {
+        <MudPagination
+            Class="mt-6 d-flex justify-center"
+            Selected="_currentPage"
+            Count="((_posts.TotalCount + _pageSize - 1) / _pageSize)"
+            SelectedChanged="OnPageChanged" />
+    }
+}
+
+@code {
+    private BlogService.PostListResponse? _posts;
+    private int _currentPage = 1;
+    private int _pageSize = 9;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPosts();
+    }
+
+    private async Task LoadPosts()
+    {
+        _posts = await BlogService.GetPostsAsync(_currentPage, _pageSize);
+
+        // Clamp current page in case total pages decreased
+        if (_posts is not null)
+        {
+            var totalPages = (_posts.TotalCount + _pageSize - 1) / _pageSize;
+            if (totalPages > 0 && _currentPage > totalPages)
+            {
+                _currentPage = totalPages;
+                _posts = await BlogService.GetPostsAsync(_currentPage, _pageSize);
+            }
+        }
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        if (page == _currentPage) return; // Evita recarga duplicada na inicialização
+        _currentPage = page;
+        await LoadPosts();
+    }
+}

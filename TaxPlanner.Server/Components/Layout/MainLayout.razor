@@ -1,0 +1,80 @@
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using TaxPlanner.Server.Data
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudIcon Icon="@Icons.Material.Filled.EditNote" Class="mr-2" Size="Size.Medium" />
+        <MudText Typo="Typo.h6" Class="font-weight-bold">TaxPlanner — Blog</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.body2" Class="mr-2">
+                    @context.User.Identity?.Name
+                </MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Href="/Account/Manage" />
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="/Account/Login" Color="Color.Inherit" Variant="Variant.Text">
+                    Entrar
+                </MudButton>
+                <MudButton Href="/Account/Register" Color="Color.Inherit" Variant="Variant.Text">
+                    Registrar
+                </MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+                Início
+            </MudNavLink>
+            <MudNavLink Href="/admin/posts" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Article">
+                Postagens
+            </MudNavLink>
+            <MudNavLink Href="/admin/posts/novo" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">
+                Nova Postagem
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pt-2 pb-12">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+
+    <MudContainer MaxWidth="MaxWidth.Large" Class="py-3">
+        <MudDivider Class="mb-3" />
+        <MudText Align="Align.Center" Typo="Typo.caption" Color="Color.Secondary">
+            TaxPlanner Blog — © @DateTime.Now.Year
+        </MudText>
+    </MudContainer>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private readonly MudTheme _theme = new MudTheme
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = Colors.Teal.Default,
+            Secondary = Colors.Teal.Accent4,
+            Tertiary = Colors.Gray.Default
+        }
+    };
+}
