@@ -1,0 +1,34 @@
+@* Componente reutilizável para exibir a thumbnail de um post.
+   Mostra a imagem real se houver URL, ou um placeholder editorial estilizado. *@
+
+@if (HasImage)
+{
+    <img src="@Post.ThumbnailUrl"
+         alt="@AltText"
+         loading="lazy"
+         class="tp-thumb-img tp-thumb-@Variant" />
+}
+else
+{
+    <div class="tp-thumb-placeholder tp-thumb-@Variant" role="img" aria-label="@AltText" data-seed="@AccentSeed">
+        <div class="tp-thumb-placeholder-pattern"></div>
+        <div class="tp-thumb-placeholder-content">
+            <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Large" />
+            <span class="tp-thumb-placeholder-text">TaxPlanner</span>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BlogService.PostSummary Post { get; set; } = default!;
+    [Parameter] public string Variant { get; set; } = "card"; // "card" | "featured" | "preview"
+
+    private bool HasImage => !string.IsNullOrWhiteSpace(Post.ThumbnailUrl);
+
+    private string AltText =>
+        !string.IsNullOrWhiteSpace(Post.ThumbnailAlt)
+            ? Post.ThumbnailAlt!
+            : $"Imagem de capa: {Post.Title}";
+
+    private string AccentSeed => Post.Slug;
+}

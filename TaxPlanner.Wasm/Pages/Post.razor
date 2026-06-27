@@ -2,55 +2,84 @@
 @inject BlogService BlogService
 @inject IJSRuntime JS
 
+<PageTitle>@(_post?.Title ?? "Postagem") — TaxPlanner</PageTitle>
+
 @if (_loading)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <div class="tp-blog-loading">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </div>
 }
 else if (_post is null)
 {
     <MudAlert Severity="Severity.Error" Class="mb-4">
         Postagem não encontrada.
     </MudAlert>
-    <MudButton Href="/blog" Variant="Variant.Filled" Color="Color.Primary">
+    <MudButton Href="/blog" Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Rounded.ArrowBack">
         Voltar ao Blog
     </MudButton>
 }
 else
 {
-    <MudText Typo="Typo.h3" Class="mb-2" Color="Color.Primary">
-        @_post.Title
-    </MudText>
+    <article class="tp-article">
+        <a href="/blog" class="tp-article-back">
+            <MudIcon Icon="@Icons.Material.Rounded.ArrowBack" Size="Size.Small" />
+            Voltar ao Blog
+        </a>
 
-    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4">
-        @_post.PublishedAt?.ToString("dd 'de' MMMM 'de' yyyy")
-    </MudText>
-
-    @if (!string.IsNullOrWhiteSpace(_post.Tags))
-    {
-        <div class="mb-4">
-            @foreach (var tag in _post.Tags!.Split(','))
-            {
-                var trimmed = tag.Trim();
-                if (!string.IsNullOrWhiteSpace(trimmed))
+        <header class="tp-article-header">
+            <div class="tp-article-tags">
+                @foreach (var tag in GetTags(_post.Tags))
                 {
-                    <span class="mud-chip mud-chip-size-small mud-chip-outlined mr-1 mb-1">@trimmed</span>
+                    <span class="tp-tag">@tag</span>
                 }
+            </div>
+
+            <h1 class="tp-article-title">@_post.Title</h1>
+
+            @if (!string.IsNullOrWhiteSpace(_post.Summary))
+            {
+                <p class="tp-article-summary">@_post.Summary</p>
             }
+
+            <div class="tp-article-meta">
+                <span class="tp-article-meta-item">
+                    <MudIcon Icon="@Icons.Material.Rounded.CalendarToday" Size="Size.Small" />
+                    @_post.PublishedAt?.ToString("dd 'de' MMMM 'de' yyyy")
+                </span>
+                @if (_post.UpdatedAt is not null && _post.UpdatedAt != _post.PublishedAt)
+                {
+                    <span class="tp-meta-divider" aria-hidden="true">•</span>
+                    <span class="tp-article-meta-item">
+                        <MudIcon Icon="@Icons.Material.Rounded.Update" Size="Size.Small" />
+                        Atualizado em @_post.UpdatedAt?.ToString("dd/MM/yyyy")
+                    </span>
+                }
+            </div>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(_post.ThumbnailUrl))
+        {
+            <figure class="tp-article-hero">
+                <img src="@_post.ThumbnailUrl"
+                     alt="@GetThumbnailAlt()"
+                     loading="lazy" />
+            </figure>
+        }
+
+        <div class="blog-content">
+            @((MarkupString)_post.ContentHtml)
         </div>
-    }
 
-    <MudDivider Class="mb-4" />
-
-    <div class="blog-content">
-        @((MarkupString)_post.ContentHtml)
-    </div>
-
-    <MudDivider Class="my-6" />
-
-    <MudButton Href="/blog" Variant="Variant.Outlined" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.ArrowBack">
-        Voltar ao Blog
-    </MudButton>
+        <footer class="tp-article-footer">
+            <MudDivider Class="mb-4" />
+            <MudButton Href="/blog" Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Rounded.ArrowBack">
+                Voltar ao Blog
+            </MudButton>
+        </footer>
+    </article>
 }
 
 @code {
@@ -75,4 +104,18 @@ else
             await JS.InvokeVoidAsync("Prism.highlightAll");
         }
     }
+
+    private static IEnumerable<string> GetTags(string? tags)
+    {
+        if (string.IsNullOrWhiteSpace(tags)) return Enumerable.Empty<string>();
+        return tags
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t));
+    }
+
+    private string GetThumbnailAlt() =>
+        !string.IsNullOrWhiteSpace(_post?.ThumbnailAlt)
+            ? _post.ThumbnailAlt!
+            : $"Imagem de capa: {_post?.Title}";
 }

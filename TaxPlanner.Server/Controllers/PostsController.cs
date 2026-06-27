@@ -29,7 +29,9 @@ public class PostsController : ControllerBase
                 p.Summary,
                 p.Tags,
                 p.PublishedAt,
-                p.UpdatedAt
+                p.UpdatedAt,
+                p.ThumbnailUrl,
+                p.ThumbnailAlt
             }),
             page,
             pageSize,
@@ -52,7 +54,9 @@ public class PostsController : ControllerBase
             post.ContentMarkdown,
             post.Tags,
             post.PublishedAt,
-            post.UpdatedAt
+            post.UpdatedAt,
+            post.ThumbnailUrl,
+            post.ThumbnailAlt
         });
     }
 

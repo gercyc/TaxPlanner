@@ -48,7 +48,14 @@ public class BlogService
         return await _db.Posts.FindAsync(id);
     }
 
-    public async Task<Post> CreateAsync(string title, string? summary, string contentMarkdown, string? tags, string slug)
+    public async Task<Post> CreateAsync(
+        string title,
+        string? summary,
+        string contentMarkdown,
+        string? tags,
+        string slug,
+        string? thumbnailUrl = null,
+        string? thumbnailAlt = null)
     {
         var post = new Post
         {
@@ -58,6 +65,8 @@ public class BlogService
             ContentHtml = RenderMarkdown(contentMarkdown),
             Tags = tags?.Trim(),
             Slug = string.IsNullOrWhiteSpace(slug) ? GenerateSlug(title) : slug.Trim(),
+            ThumbnailUrl = NormalizeCoverUrl(thumbnailUrl),
+            ThumbnailAlt = string.IsNullOrWhiteSpace(thumbnailAlt) ? null : thumbnailAlt.Trim(),
             CreatedAt = DateTime.UtcNow,
             IsPublished = false
         };
@@ -67,7 +76,16 @@ public class BlogService
         return post;
     }
 
-    public async Task<Post?> UpdateAsync(int id, string title, string? summary, string contentMarkdown, string? tags, string slug, bool isPublished)
+    public async Task<Post?> UpdateAsync(
+        int id,
+        string title,
+        string? summary,
+        string contentMarkdown,
+        string? tags,
+        string slug,
+        bool isPublished,
+        string? thumbnailUrl = null,
+        string? thumbnailAlt = null)
     {
         var post = await _db.Posts.FindAsync(id);
         if (post is null) return null;
@@ -78,6 +96,8 @@ public class BlogService
         post.ContentHtml = RenderMarkdown(contentMarkdown);
         post.Tags = tags?.Trim();
         post.Slug = string.IsNullOrWhiteSpace(slug) ? GenerateSlug(title) : slug.Trim();
+        post.ThumbnailUrl = NormalizeCoverUrl(thumbnailUrl);
+        post.ThumbnailAlt = string.IsNullOrWhiteSpace(thumbnailAlt) ? null : thumbnailAlt.Trim();
         post.UpdatedAt = DateTime.UtcNow;
         post.IsPublished = isPublished;
 
@@ -123,12 +143,18 @@ public class BlogService
 
     // ── Image management ───────────────────────────────────────────────────
 
-    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>
+    /// Extensões de imagem permitidas para upload de capa ou inline.
+    /// Exposto como <c>internal</c> para reuso pelos componentes admin
+    /// (NovoPost/EditarPost) sem precisar duplicar a lista.
+    /// </summary>
+    internal static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"
     };
 
-    private const long MaxImageSize = 5 * 1024 * 1024; // 5 MB
+    /// <summary>Tamanho máximo (em bytes) aceito para upload de imagens.</summary>
+    internal const long MaxImageSize = 5 * 1024 * 1024; // 5 MB
 
     public record ImageInfo(string FileName, string Url, long Size, DateTime CreatedAt);
 
@@ -188,6 +214,28 @@ public class BlogService
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Faz o trim da URL da imagem de capa. Se vazia (ou só espaços),
+    /// devolve <c>null</c> — usado tanto para "não enviar capa" quanto
+    /// para "remover capa". Se não vazia, exige scheme <c>http</c> ou
+    /// <c>https</c>; caso contrário lança <see cref="ArgumentException"/>
+    /// com mensagem em pt-BR.
+    /// </summary>
+    internal static string? NormalizeCoverUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+
+        var trimmed = url.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new ArgumentException(
+                "thumbnailUrl deve iniciar com http:// ou https://");
+        }
+
+        return trimmed;
+    }
 
     private static string RenderMarkdown(string markdown)
     {

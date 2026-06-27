@@ -30,7 +30,9 @@ public class AdminPostsController : ControllerBase
             p.IsPublished,
             p.PublishedAt,
             p.CreatedAt,
-            p.UpdatedAt
+            p.UpdatedAt,
+            p.ThumbnailUrl,
+            p.ThumbnailAlt
         }));
     }
 
@@ -54,7 +56,9 @@ public class AdminPostsController : ControllerBase
             post.IsPublished,
             post.PublishedAt,
             post.CreatedAt,
-            post.UpdatedAt
+            post.UpdatedAt,
+            post.ThumbnailUrl,
+            post.ThumbnailAlt
         });
     }
 
@@ -65,7 +69,9 @@ public class AdminPostsController : ControllerBase
         string? Summary,
         string ContentMarkdown,
         string? Tags,
-        string? Slug
+        string? Slug,
+        string? ThumbnailUrl,
+        string? ThumbnailAlt
     );
 
     [HttpPost]
@@ -76,22 +82,38 @@ public class AdminPostsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.ContentMarkdown))
             return BadRequest(new { error = "ContentMarkdown is required" });
 
-        var post = await _blog.CreateAsync(req.Title, req.Summary, req.ContentMarkdown, req.Tags, req.Slug ?? "");
-
-        return CreatedAtAction(nameof(Get), new { id = post.Id }, new
+        try
         {
-            post.Id,
-            post.Slug,
-            post.Title,
-            post.Summary,
-            post.ContentMarkdown,
-            post.ContentHtml,
-            post.Tags,
-            post.IsPublished,
-            post.PublishedAt,
-            post.CreatedAt,
-            post.UpdatedAt
-        });
+            var post = await _blog.CreateAsync(
+                req.Title,
+                req.Summary,
+                req.ContentMarkdown,
+                req.Tags,
+                req.Slug ?? "",
+                req.ThumbnailUrl,
+                req.ThumbnailAlt);
+
+            return CreatedAtAction(nameof(Get), new { id = post.Id }, new
+            {
+                post.Id,
+                post.Slug,
+                post.Title,
+                post.Summary,
+                post.ContentMarkdown,
+                post.ContentHtml,
+                post.Tags,
+                post.IsPublished,
+                post.PublishedAt,
+                post.CreatedAt,
+                post.UpdatedAt,
+                post.ThumbnailUrl,
+                post.ThumbnailAlt
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // ── Update ─────────────────────────────────────────────────────────
@@ -102,7 +124,9 @@ public class AdminPostsController : ControllerBase
         string ContentMarkdown,
         string? Tags,
         string? Slug,
-        bool IsPublished
+        bool IsPublished,
+        string? ThumbnailUrl,
+        string? ThumbnailAlt
     );
 
     [HttpPut("{id:int}")]
@@ -113,23 +137,41 @@ public class AdminPostsController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.ContentMarkdown))
             return BadRequest(new { error = "ContentMarkdown is required" });
 
-        var post = await _blog.UpdateAsync(id, req.Title, req.Summary, req.ContentMarkdown, req.Tags, req.Slug ?? "", req.IsPublished);
-        if (post is null) return NotFound(new { error = "Post not found" });
-
-        return Ok(new
+        try
         {
-            post.Id,
-            post.Slug,
-            post.Title,
-            post.Summary,
-            post.ContentMarkdown,
-            post.ContentHtml,
-            post.Tags,
-            post.IsPublished,
-            post.PublishedAt,
-            post.CreatedAt,
-            post.UpdatedAt
-        });
+            var post = await _blog.UpdateAsync(
+                id,
+                req.Title,
+                req.Summary,
+                req.ContentMarkdown,
+                req.Tags,
+                req.Slug ?? "",
+                req.IsPublished,
+                req.ThumbnailUrl,
+                req.ThumbnailAlt);
+            if (post is null) return NotFound(new { error = "Post not found" });
+
+            return Ok(new
+            {
+                post.Id,
+                post.Slug,
+                post.Title,
+                post.Summary,
+                post.ContentMarkdown,
+                post.ContentHtml,
+                post.Tags,
+                post.IsPublished,
+                post.PublishedAt,
+                post.CreatedAt,
+                post.UpdatedAt,
+                post.ThumbnailUrl,
+                post.ThumbnailAlt
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // ── Delete ─────────────────────────────────────────────────────────

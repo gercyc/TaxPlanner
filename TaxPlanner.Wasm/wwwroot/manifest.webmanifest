@@ -1,11 +1,12 @@
 {
-  "name": "TaxPlanner.Wasm",
-  "short_name": "TaxPlanner.Wasm",
+  "name": "TaxPlanner",
+  "short_name": "TaxPlanner",
+  "description": "Simulador de Imposto de Renda e blog tributário",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#03173d",
+  "background_color": "#FAFAF9",
+  "theme_color": "#0F172A",
   "prefer_related_applications": false,
   "icons": [
     {

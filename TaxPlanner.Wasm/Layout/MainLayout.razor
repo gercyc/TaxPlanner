@@ -7,66 +7,191 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Fixed="true">
-        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Class="mr-2" Size="Size.Medium" Color="Color.Primary" />
-        <MudText Typo="Typo.h6" Class="font-weight-bold" Color="Color.Primary">TaxPlanner</MudText>
-        <MudSpacer />
-        <MudButton Href="/" Color="Color.Inherit" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Home">
-            Início
-        </MudButton>
-        <MudButton Href="/analise-tributaria" Color="Color.Inherit" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Calculate">
-            Análise Tributária
-        </MudButton>
-        <MudButton Href="/tabelas" Color="Color.Inherit" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.TableChart">
-            Tabelas
-        </MudButton>
-        <MudButton Href="/blog" Color="Color.Inherit" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Article">
-            Blog
-        </MudButton>
-        <MudDivider Vertical="true" FlexItem="true" Class="mx-3 my-2" />
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+    <MudAppBar Elevation="0"
+               Fixed="true"
+               Color="Color.Surface"
+               Class="tp-appbar"
+               Dense="false">
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu"
                        Color="Color.Inherit"
-                       OnClick="ToggleTheme"
-                       title="Alternar entre tema claro e escuro" />
+                       Edge="Edge.Start"
+                       OnClick="@ToggleDrawer"
+                       Class="d-flex d-md-none mr-1"
+                       aria-label="Abrir menu" />
+
+        <MudLink Href="/" Underline="Underline.None" Color="Color.Inherit" Class="d-flex align-center tp-brand">
+            <span class="tp-brand-mark">
+                <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Medium" />
+            </span>
+            <span class="tp-brand-text">
+                <span class="tp-brand-name">TaxPlanner</span>
+                <span class="tp-brand-tag">Planejamento tributário</span>
+            </span>
+        </MudLink>
+
+        <MudSpacer />
+
+        <nav class="tp-nav-desktop d-none d-md-flex">
+            <MudLink Href="/"
+                     Underline="Underline.None"
+                     Color="Color.Inherit"
+                     Class="@($"tp-nav-link {GetActiveClass("/")}")">
+                <MudIcon Icon="@Icons.Material.Outlined.Dashboard" Class="mr-1" />
+                Início
+            </MudLink>
+            <MudLink Href="/analise-tributaria"
+                     Underline="Underline.None"
+                     Color="Color.Inherit"
+                     Class="@($"tp-nav-link {GetActiveClass("/analise-tributaria")}")">
+                <MudIcon Icon="@Icons.Material.Outlined.Calculate" Class="mr-1" />
+                Análise Tributária
+            </MudLink>
+            <MudLink Href="/tabelas"
+                     Underline="Underline.None"
+                     Color="Color.Inherit"
+                     Class="@($"tp-nav-link {GetActiveClass("/tabelas")}")">
+                <MudIcon Icon="@Icons.Material.Outlined.TableChart" Class="mr-1" />
+                Tabelas
+            </MudLink>
+            <MudLink Href="/blog"
+                     Underline="Underline.None"
+                     Color="Color.Inherit"
+                     Class="@($"tp-nav-link {GetActiveClass("/blog")}")">
+                <MudIcon Icon="@Icons.Material.Outlined.Article" Class="mr-1" />
+                Blog
+            </MudLink>
+        </nav>
+
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-3 my-2 d-none d-md-flex" />
+
+        <MudTooltip Text="@(_isDarkMode ? "Tema claro" : "Tema escuro")" Placement="Placement.Bottom">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="ToggleTheme"
+                           aria-label="Alternar tema" />
+        </MudTooltip>
     </MudAppBar>
 
+    <MudDrawer @bind-Open="_drawerOpen"
+               Anchor="Anchor.Start"
+               Variant="DrawerVariant.Temporary"
+               Elevation="2"
+               Class="tp-drawer">
+        <div class="tp-drawer-header">
+            <span class="tp-brand-mark">
+                <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Medium" />
+            </span>
+            <div class="tp-brand-text">
+                <span class="tp-brand-name">TaxPlanner</span>
+                <span class="tp-brand-tag">Planejamento tributário</span>
+            </div>
+        </div>
+
+        <MudNavMenu Class="tp-drawer-nav">
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.Dashboard" OnClick="CloseDrawer">Início</MudNavLink>
+            <MudNavLink Href="/analise-tributaria" Icon="@Icons.Material.Outlined.Calculate" OnClick="CloseDrawer">Análise Tributária</MudNavLink>
+            <MudNavLink Href="/tabelas" Icon="@Icons.Material.Outlined.TableChart" OnClick="CloseDrawer">Tabelas</MudNavLink>
+            <MudNavLink Href="/blog" Icon="@Icons.Material.Outlined.Article" OnClick="CloseDrawer">Blog</MudNavLink>
+        </MudNavMenu>
+
+        <div class="tp-drawer-footer">
+            <MudText Typo="Typo.caption" Class="tp-drawer-footer-text">
+                © @DateTime.UtcNow.Year TaxPlanner
+            </MudText>
+            <MudText Typo="Typo.caption" Class="tp-drawer-footer-text">
+                Cálculos locais, sem envio de dados.
+            </MudText>
+        </div>
+    </MudDrawer>
+
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="pt-8 pb-12">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="tp-main pt-8 pb-12">
             @Body
         </MudContainer>
     </MudMainContent>
 
-    <MudDivider />
-
-    <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-        <MudGrid Justify="Justify.Center">
-            <MudItem xs="12" md="10" lg="8">
-                <MudAlert Severity="Severity.Info"
-                          Variant="Variant.Outlined"
-                          Dense="false"
-                          Class="mb-4"
-                          Icon="@Icons.Material.Filled.Security">
-                    <MudText Typo="Typo.subtitle2" Class="font-weight-bold">Sua privacidade é garantida</MudText>
-                    <MudText Typo="Typo.body2">
-                        Não armazenamos nenhum dado seu. Todos os cálculos são realizados localmente no seu navegador.
-                        Nenhuma informação pessoal, salarial ou fiscal é enviada para servidores externos.
+    <footer class="tp-footer">
+        <MudContainer MaxWidth="MaxWidth.Large">
+            <MudGrid Spacing="6" Class="py-10">
+                <MudItem xs="12" md="5">
+                    <div class="tp-footer-brand">
+                        <span class="tp-brand-mark">
+                            <MudIcon Icon="@Icons.Material.Rounded.ReceiptLong" Size="Size.Medium" />
+                        </span>
+                        <div class="tp-brand-text">
+                            <span class="tp-brand-name">TaxPlanner</span>
+                            <span class="tp-brand-tag">Planejamento tributário</span>
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="tp-footer-about mt-3">
+                        Simulador gratuito de Imposto de Renda para pessoas físicas, com tabelas
+                        oficiais da Receita Federal e artigos educativos sobre tributação.
                     </MudText>
-                </MudAlert>
-            </MudItem>
-        </MudGrid>
+                </MudItem>
 
-        <MudText Align="Align.Center" Typo="Typo.caption" Color="Color.Secondary">
-            TaxPlanner — Simulador de Imposto de Renda. Uso gratuito e sem registro.
-        </MudText>
-    </MudContainer>
+                <MudItem xs="6" sm="4" md="2">
+                    <MudText Typo="Typo.subtitle2" Class="tp-footer-title">Ferramentas</MudText>
+                    <ul class="tp-footer-list">
+                        <li><MudLink Href="/analise-tributaria" Underline="Underline.None">Análise Tributária</MudLink></li>
+                        <li><MudLink Href="/tabelas" Underline="Underline.None">Tabelas IR / INSS</MudLink></li>
+                        <li><MudLink Href="/blog" Underline="Underline.None">Artigos</MudLink></li>
+                    </ul>
+                </MudItem>
+
+                <MudItem xs="6" sm="4" md="2">
+                    <MudText Typo="Typo.subtitle2" Class="tp-footer-title">Recursos</MudText>
+                    <ul class="tp-footer-list">
+                        <li><MudLink Href="/" Underline="Underline.None">Como funciona</MudLink></li>
+                        <li><MudLink Href="/" Underline="Underline.None">Privacidade</MudLink></li>
+                        <li><MudLink Href="/" Underline="Underline.None">Perguntas frequentes</MudLink></li>
+                    </ul>
+                </MudItem>
+
+                <MudItem xs="12" sm="4" md="3">
+                    <MudText Typo="Typo.subtitle2" Class="tp-footer-title">Transparência</MudText>
+                    <MudAlert Severity="Severity.Success"
+                              Variant="Variant.Outlined"
+                              Dense="true"
+                              Icon="@Icons.Material.Outlined.Lock"
+                              Class="tp-footer-alert">
+                        <MudText Typo="Typo.caption">
+                            Seus dados não saem do navegador. Nenhum cálculo é enviado a servidores externos.
+                        </MudText>
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider />
+
+            <div class="tp-footer-bottom">
+                <MudText Typo="Typo.caption" Class="tp-footer-bottom-text">
+                    © @DateTime.UtcNow.Year TaxPlanner. Conteúdo meramente informativo — não substitui orientação de um contador.
+                </MudText>
+                <MudText Typo="Typo.caption" Class="tp-footer-bottom-text">
+                    Feito com <MudIcon Icon="@Icons.Material.Rounded.Favorite" Size="Size.Small" Style="color:#DC2626;font-size:0.85rem;" /> no Brasil
+                </MudText>
+            </div>
+        </MudContainer>
+    </footer>
 </MudLayout>
 
 @code {
-    private readonly MudTheme _theme = ClaudeTheme.CreateTheme();
+    private readonly MudTheme _theme = TaxPlannerTheme.CreateTheme();
     private bool _isDarkMode;
+    private bool _drawerOpen;
 
-    private void ToggleTheme()
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void ToggleTheme() => _isDarkMode = !_isDarkMode;
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void CloseDrawer() => _drawerOpen = false;
+
+    private string GetActiveClass(string path)
     {
-        _isDarkMode = !_isDarkMode;
+        var current = new Uri(Nav.Uri).AbsolutePath.TrimEnd('/');
+        var target = path.TrimEnd('/');
+        return string.Equals(current, target, StringComparison.OrdinalIgnoreCase)
+            ? "tp-nav-link-active"
+            : string.Empty;
     }
 }

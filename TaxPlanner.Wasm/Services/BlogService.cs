@@ -11,8 +11,8 @@ public class BlogService
         _http = http;
     }
 
-    public record PostSummary(string Slug, string Title, string? Summary, string? Tags, DateTime? PublishedAt, DateTime? UpdatedAt);
-    public record PostDetail(string Slug, string Title, string? Summary, string ContentHtml, string ContentMarkdown, string? Tags, DateTime? PublishedAt, DateTime? UpdatedAt);
+    public record PostSummary(string Slug, string Title, string? Summary, string? Tags, string? ThumbnailUrl, string? ThumbnailAlt, DateTime? PublishedAt, DateTime? UpdatedAt);
+    public record PostDetail(string Slug, string Title, string? Summary, string ContentHtml, string ContentMarkdown, string? Tags, string? ThumbnailUrl, string? ThumbnailAlt, DateTime? PublishedAt, DateTime? UpdatedAt);
     public record PostListResponse(List<PostSummary> Posts, int Page, int PageSize, int TotalCount);
 
     public async Task<PostListResponse?> GetPostsAsync(int page = 1, int pageSize = 10)

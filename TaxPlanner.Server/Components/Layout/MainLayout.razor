@@ -2,8 +2,9 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using TaxPlanner.Server.Data
+@using TaxPlanner.Server.Theme
 
-<MudThemeProvider Theme="_theme" />
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -14,6 +15,12 @@
         <MudIcon Icon="@Icons.Material.Filled.EditNote" Class="mr-2" Size="Size.Medium" />
         <MudText Typo="Typo.h6" Class="font-weight-bold">TaxPlanner — Blog</MudText>
         <MudSpacer />
+        <MudTooltip Text="@(_isDarkMode ? "Tema claro" : "Tema escuro")" Placement="Placement.Bottom">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="ToggleTheme"
+                           aria-label="Alternar tema" />
+        </MudTooltip>
         <AuthorizeView>
             <Authorized>
                 <MudText Typo="Typo.body2" Class="mr-2">
@@ -33,7 +40,7 @@
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <MudNavMenu>
+        <MudNavMenu Color="Color.Secondary">
             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
                 Início
             </MudNavLink>
@@ -61,20 +68,48 @@
 </MudLayout>
 
 @code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+
+    private readonly MudTheme _theme = TaxPlannerTheme.CreateTheme();
 
     private void DrawerToggle()
     {
         _drawerOpen = !_drawerOpen;
     }
 
-    private readonly MudTheme _theme = new MudTheme
+    private async Task ToggleTheme()
     {
-        PaletteLight = new PaletteLight
+        _isDarkMode = !_isDarkMode;
+        await JS.InvokeVoidAsync("localStorage.setItem", "tp-theme-dark", _isDarkMode ? "1" : "0");
+        await JS.InvokeVoidAsync("tpSetThemeMeta", _isDarkMode);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            Primary = Colors.Teal.Default,
-            Secondary = Colors.Teal.Accent4,
-            Tertiary = Colors.Gray.Default
+            try
+            {
+                var stored = await JS.InvokeAsync<string?>("localStorage.getItem", "tp-theme-dark");
+                if (stored == "1" && !_isDarkMode)
+                {
+                    _isDarkMode = true;
+                    // Re-renderizar para que o MudThemeProvider reavalie
+                    // @bind-IsDarkMode e reescreva o <style class="mud-theme-provider">
+                    // com as variáveis da PaletteDark. Sem isso, a página fica presa
+                    // no PaletteLight do pré-render (em SSR Blazor Server, o
+                    // pré-render é estático e só este StateHasChanged força a
+                    // hidratação a refletir o estado persistido).
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // localStorage indisponível: mantém o default (claro)
+            }
         }
-    };
+    }
 }

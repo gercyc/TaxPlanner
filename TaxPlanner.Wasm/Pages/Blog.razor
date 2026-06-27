@@ -1,85 +1,129 @@
 @page "/blog"
 @inject BlogService BlogService
 
-<MudText Typo="Typo.h3" Class="mb-6" Color="Color.Primary">
-    <MudIcon Icon="@Icons.Material.Filled.Article" Class="mr-2" />
-    Blog
-</MudText>
+<PageTitle>Blog — TaxPlanner</PageTitle>
+
+<section class="tp-blog-hero">
+    <div class="tp-blog-hero-content">
+        <span class="tp-blog-eyebrow">
+            <MudIcon Icon="@Icons.Material.Rounded.Article" Size="Size.Small" />
+            Conteúdo
+        </span>
+        <MudText Typo="Typo.h2" Class="tp-blog-title">
+            Blog Tributário
+        </MudText>
+        <MudText Typo="Typo.h6" Class="tp-blog-subtitle">
+            Artigos sobre Imposto de Renda, planejamento financeiro e novidades da Receita Federal.
+        </MudText>
+    </div>
+</section>
 
 @if (_posts is null)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <div class="tp-blog-loading">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        <MudText Typo="Typo.body2" Class="mt-3" Color="Color.Secondary">
+            Carregando postagens...
+        </MudText>
+    </div>
 }
 else if (_posts.Posts.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Class="mb-4">
+    <MudAlert Severity="Severity.Info" Class="mb-4 tp-blog-empty">
         Nenhuma postagem publicada ainda. Volte em breve!
     </MudAlert>
 }
 else
 {
-    <MudGrid>
-        @foreach (var post in _posts.Posts)
-        {
-            <MudItem xs="12" md="6" lg="4">
-                <MudCard Elevation="2" Class="mb-4" Style="height: 100%;">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6" Class="mb-2">
-                            <MudNavLink Href="@($"/post/{post.Slug}")" Class="pa-0">
-                                @post.Title
-                            </MudNavLink>
-                        </MudText>
+    @* ── Post em destaque (primeiro da lista) ─────────────────────────── *@
+    @if (_currentPage == 1 && _posts.Posts.Count > 0)
+    {
+        var featured = _posts.Posts[0];
+        <article class="tp-featured">
+            <a href="@($"/post/{featured.Slug}")" class="tp-featured-link" aria-label="@($"Ler: {featured.Title}")">
+                <div class="tp-featured-thumb">
+                    <BlogThumbnail Post="featured" Variant="featured" />
+                </div>
+                <div class="tp-featured-body">
+                    <span class="tp-featured-badge">Em destaque</span>
+                    <h2 class="tp-featured-title">@featured.Title</h2>
+                    @if (!string.IsNullOrWhiteSpace(featured.Summary))
+                    {
+                        <p class="tp-featured-summary">@featured.Summary</p>
+                    }
+                    <div class="tp-featured-meta">
+                        <span class="tp-meta-date">
+                            <MudIcon Icon="@Icons.Material.Rounded.CalendarToday" Size="Size.Small" />
+                            @(featured.PublishedAt?.ToString("dd 'de' MMMM 'de' yyyy") ?? "Recente")
+                        </span>
+                        <span class="tp-meta-divider" aria-hidden="true">•</span>
+                        <span class="tp-meta-read">
+                            <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" />
+                            ~@EstimateReadingTime(featured) min de leitura
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </article>
+    }
 
+    @* ── Grid de postagens ─────────────────────────────────────────────── *@
+    <div class="tp-blog-grid">
+        @foreach (var post in GetNonFeaturedPosts())
+        {
+            <article class="tp-post-card">
+                <a href="@($"/post/{post.Slug}")" class="tp-post-card-link" aria-label="@($"Ler: {post.Title}")">
+                    <div class="tp-post-card-thumb">
+                        <BlogThumbnail Post="post" Variant="card" />
+                    </div>
+                    <div class="tp-post-card-body">
+                        <div class="tp-post-card-tags">
+                            @foreach (var tag in GetTags(post))
+                            {
+                                <span class="tp-tag">@tag</span>
+                            }
+                        </div>
+                        <h3 class="tp-post-card-title">@post.Title</h3>
                         @if (!string.IsNullOrWhiteSpace(post.Summary))
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                                @post.Summary
-                            </MudText>
+                            <p class="tp-post-card-summary">@post.Summary</p>
                         }
-
-                        @if (!string.IsNullOrWhiteSpace(post.Tags))
-                        {
-                            <div class="mb-2">
-                                @foreach (var tag in post.Tags!.Split(','))
-                                {
-                                    var trimmed = tag.Trim();
-                                    if (!string.IsNullOrWhiteSpace(trimmed))
-                                    {
-                                        <span class="mud-chip mud-chip-size-small mud-chip-outlined mr-1 mb-1">@trimmed</span>
-                                    }
-                                }
-                            </div>
-                        }
-                    </MudCardContent>
-                    <MudCardActions>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @(post.PublishedAt?.ToString("dd/MM/yyyy"))
-                        </MudText>
-                        <MudSpacer />
-                        <MudButton Href="@($"/post/{post.Slug}")" Variant="Variant.Text" Color="Color.Primary"
-                                   EndIcon="@Icons.Material.Filled.ArrowForward">
-                            Ler
-                        </MudButton>
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
+                        <div class="tp-post-card-footer">
+                            <span class="tp-post-card-date">
+                                <MudIcon Icon="@Icons.Material.Rounded.CalendarToday" Size="Size.Small" />
+                                @(post.PublishedAt?.ToString("dd MMM yyyy") ?? "—")
+                            </span>
+                            <span class="tp-post-card-read">
+                                <MudIcon Icon="@Icons.Material.Rounded.Schedule" Size="Size.Small" />
+                                @EstimateReadingTime(post) min
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </article>
         }
-    </MudGrid>
+    </div>
 
+    @* ── Paginação ─────────────────────────────────────────────────────── *@
     @if (_posts.TotalCount > _pageSize)
     {
-        <MudPagination
-            Class="mt-6 d-flex justify-center"
-            Selected="_currentPage"
-            Count="((_posts.TotalCount + _pageSize - 1) / _pageSize)"
-            SelectedChanged="OnPageChanged" />
+        <div class="tp-pagination">
+            <MudPagination
+                Selected="_currentPage"
+                Count="((_posts.TotalCount + _pageSize - 1) / _pageSize)"
+                SelectedChanged="OnPageChanged"
+                Color="Color.Primary"
+                Variant="Variant.Outlined"
+                ShowFirstButton="true"
+                ShowLastButton="true" />
+        </div>
     }
 }
 
 @code {
     private BlogService.PostListResponse? _posts;
     private int _currentPage = 1;
-    private int _pageSize = 9;
+    private int _pageSize = 10;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,7 +134,6 @@ else
     {
         _posts = await BlogService.GetPostsAsync(_currentPage, _pageSize);
 
-        // Clamp current page in case total pages decreased
         if (_posts is not null)
         {
             var totalPages = (_posts.TotalCount + _pageSize - 1) / _pageSize;
@@ -104,8 +147,40 @@ else
 
     private async Task OnPageChanged(int page)
     {
-        if (page == _currentPage) return; // Evita recarga duplicada na inicialização
+        if (page == _currentPage) return;
         _currentPage = page;
         await LoadPosts();
+    }
+
+    private IEnumerable<BlogService.PostSummary> GetNonFeaturedPosts()
+    {
+        if (_posts is null) return Enumerable.Empty<BlogService.PostSummary>();
+        return _currentPage == 1 && _posts.Posts.Count > 0
+            ? _posts.Posts.Skip(1)
+            : _posts.Posts;
+    }
+
+    private static IEnumerable<string> GetTags(BlogService.PostSummary post)
+    {
+        if (string.IsNullOrWhiteSpace(post.Tags)) return Enumerable.Empty<string>();
+        return post.Tags
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Take(3);
+    }
+
+    /// <summary>
+    /// Estima o tempo de leitura a partir do resumo/título (200 palavras/min).
+    /// Quando o resumo não está disponível, usa um valor padrão conservador.
+    /// </summary>
+    private static int EstimateReadingTime(BlogService.PostSummary post)
+    {
+        var words = 0;
+        if (!string.IsNullOrWhiteSpace(post.Summary))
+            words += post.Summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length * 12; // resumo × 12
+        if (string.IsNullOrWhiteSpace(post.Summary))
+            words = 600; // fallback
+        return Math.Max(2, words / 200);
     }
 }
